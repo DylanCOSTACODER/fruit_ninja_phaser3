@@ -1,0 +1,19 @@
+{
+    "workbench.activityBar.visible": true,
+    "window.zoomLevel": 0,
+    "editor.tabSize": 4,
+    "trailing-spaces.trimOnSave": true,
+    "[javascript]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[html]": {
+        "editor.defaultFormatter": "vscode.html-language-features"
+    },
+    "editor.formatOnSave": true,
+    "eslint.quiet": true,
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": true
+    },
+    "editor.detectIndentation": false,
+}
