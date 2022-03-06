@@ -1,4 +1,6 @@
+import EndScene from './EndScene.js';
 import MainScene from './MainScene.js';
+import StartScene from './StartScene.js';
 
 /**
  * Configuration of the game
@@ -21,7 +23,7 @@ const configurations = {
             debut: true,
         },
     },
-    scene: [MainScene],
+    scene: [StartScene, MainScene, EndScene],
 };
 
 /**
@@ -30,3 +32,7 @@ const configurations = {
  * @type {object}
  */
 let game = new Phaser.Game(configurations);
+
+export function convertMinutesSeconds(s) {
+    return (s - (s %= 60)) / 60 + (9 < s ? 'm' : 'm0') + s;
+}

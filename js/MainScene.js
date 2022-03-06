@@ -8,20 +8,38 @@
 
 // var fireRate = 1000;
 // var nextFire = 0;
-let score = 0;
-let fruits;
+let score;
+let lifes = 3;
+let scoreText, lifeText, timeDojoText;
+let fruits, chrono, lifesLosts;
 let bombs;
-let delay = 10000;
+let isBomb;
+let delay = 5000;
+let delayBomb = 10000;
+let dojoTime = 30;
 let points = [];
-let slashes;
-let line;
-let contactPoint;
-let emitter;
+let line, slashSound, endSound;
+let speed = 1.3;
+let numberOfFruit = 1,
+    numberOfBomb = 1;
+let emitterBanana = null,
+    emitterAnana = null,
+    emitterCherry = null,
+    emitterStrawberry = null,
+    emitterLine = null,
+    emitterBomb = null,
+    particleLine = null,
+    choice = null;
 let x, y;
 
 export default class MainScene extends Phaser.Scene {
     constructor() {
         super({ key: 'MainScene' });
+    }
+
+    init(data) {
+        // Pasing your last scene choice into choice for the actual scene
+        choice = data.choice;
     }
 
     preload() {
@@ -35,303 +53,395 @@ export default class MainScene extends Phaser.Scene {
             frameHeight: 512,
         });
         this.load.image('bomb', 'assets/bomb.png');
-        // var bmd = this.add.bitmapData(100, 100);
-        // bmd.ctx.fillStyle = '#00ff00';
-        // bmd.ctx.arc(50, 50, 50, 0, Math.PI * 2);
-        // bmd.ctx.fill();
-        // this.cache.addBitmapData('good', bmd);
-
-        // var bmd = this.add.bitmapData(64, 64);
-        // bmd.ctx.fillStyle = '#ff0000';
-        // bmd.ctx.arc(32, 32, 32, 0, Math.PI * 2);
-        // bmd.ctx.fill();
-        // this.cache.addBitmapData('bad', bmd);
+        this.load.image('line', 'assets/line.png');
+        this.load.audio('slash', ['assets/slash.wav']);
+        this.load.audio('endSound', ['assets/end_sound.wav']);
     }
 
     create() {
         this.x;
         this.y;
-        contactPoint = new Phaser.Geom.Point(0, 0);
-        // this.game.physics.startSystem(Phaser.Physics.ARCADE);
-        // this.game.physics.arcade.gravity.y = 300;
-        this.pointer = this.input.activePointer;
+        this.background = this.physics.add.image(0, 0, 'background').setOrigin(0, 0);
+        this.background.displayWidth = this.game.config.width;
+        this.background.displayHeight = this.game.config.height;
+        // Init Sounds
+        slashSound = this.sound.add('slash');
+        endSound = this.sound.add('endSound');
+
+        // Init fruit and bombs
         fruits = this.physics.add.group();
         bombs = this.physics.add.group();
-        slashes = this.add.graphics({ lineStyle: { width: 2, color: 0xaa00aa }, fillStyle: { color: 0x0000aa } });
+
+        this.resetValues();
+
         this.scaleFruit =
             this.game.config.width > this.game.config.height
                 ? this.game.config.width * 0.0001
                 : this.game.config.width * 0.0002;
 
+        this.fruitScore = this.add.sprite(this.game.config.width * 0.05, this.game.config.height * 0.05, 'fruits');
+        this.fruitScore.setFrame(0);
+        this.fruitScore.setScale(this.scaleFruit);
+
+        scoreText = this.add.text(this.game.config.width * 0.08, this.game.config.height * 0.05, '', {
+            font: '32px Press Start 2P',
+        });
+        scoreText.text = 'Score : ' + score;
+
+        if (choice == 'normal') {
+            lifeText = this.add.text(
+                this.game.config.width - this.game.config.width * 0.08,
+                this.game.config.height * 0.05,
+                '',
+                {
+                    font: '32px Press Start 2P',
+                }
+            );
+            lifeText.text = 'Vies : ' + lifes;
+        } else if (choice == 'dojo') {
+            delay = 1000;
+            delayBomb = 1000;
+            timeDojoText = this.add.text(
+                this.game.config.width - this.game.config.width * 0.08,
+                this.game.config.height * 0.05,
+                '',
+                {
+                    font: '32px Press Start 2P',
+                }
+            );
+            timeDojoText.text = 'Time : ' + dojoTime;
+        }
+
         // Init timer for creating fruit
-        this.timer = this.time.addEvent({
+        this.timerFruit = this.time.addEvent({
             delay: delay,
             callback: this.createFruit,
             callbackScope: this,
             loop: true,
             paused: false,
         });
-        this.createFruit();
-        // slashes = game.add.graphics(0, 0);
 
-        // scoreLabel = game.add.text(10, 10, 'Tip: get the green ones!');
-        // scoreLabel.fill = 'white';
-        emitter = this.add.particles('divide-fruits');
-        emitter.createEmitter({
+        // Instantiate chrono
+        this.timerBomb = this.time.addEvent({
+            delay: delayBomb,
+            callback: this.createBomb,
+            callbackScope: this,
+            loop: true,
+        });
+
+        // Instantiate chrono
+        this.timer2 = this.time.addEvent({
+            delay: 1000,
+            callback: this.generalCounter,
+            callbackScope: this,
+            loop: true,
+        });
+
+        // Create first fruit
+        this.createFruit();
+
+        particleLine = this.add.particles('line');
+        emitterLine = particleLine.createEmitter({
+            x: -400,
+            y: 300,
+            speed: 300,
+            scale: 0.5,
+            quantity: 1,
+            alpha: { start: 3, end: 0 },
+            blendMode: 'SCREEN',
+            lifespan: 100,
+        });
+        emitterLine.reserve(1000);
+        // emitterLine.stop();
+
+        emitterBanana = this.add.particles('divide-fruits');
+        emitterBanana.createEmitter({
             frame: 0,
             angle: { min: 180, max: 270 },
             speed: { min: 400, max: 600 },
             quantity: 1,
             lifespan: 4000,
-            scale: this.game.config.width * 0.0001,
+            scale: this.scaleFruit,
             gravityY: 800,
             on: false,
         });
 
-        emitter.createEmitter({
+        emitterBanana.createEmitter({
             frame: 1,
             angle: { min: 270, max: 360 },
             speed: { min: 400, max: 600 },
             quantity: 1,
             lifespan: 4000,
-            scale: this.game.config.width * 0.0001,
+            scale: this.scaleFruit,
             gravityY: 800,
             on: false,
         });
-        // emitter.createEmitter({
-        //     frame: 1,
-        //     angle: { min: 240, max: 300 },
-        //     speed: { min: 200, max: 300 },
-        //     quantity: 6,
-        //     lifespan: 2000,
-        //     alpha: { start: 1, end: 0 },
-        //     scale: { start: 1.5, end: 0.5 },
-        //     on: false,
-        // });
-        // emitter.setVelocity(-400, 400);
 
-        // throwObject();
+        emitterCherry = this.add.particles('divide-fruits');
+        emitterCherry.createEmitter({
+            frame: 2,
+            angle: { min: 180, max: 270 },
+            speed: { min: 400, max: 600 },
+            quantity: 1,
+            lifespan: 4000,
+            scale: this.scaleFruit,
+            gravityY: 800,
+            on: false,
+        });
+
+        emitterCherry.createEmitter({
+            frame: 3,
+            angle: { min: 270, max: 360 },
+            speed: { min: 400, max: 600 },
+            quantity: 1,
+            lifespan: 4000,
+            scale: this.scaleFruit,
+            gravityY: 800,
+            on: false,
+        });
+
+        emitterAnana = this.add.particles('divide-fruits');
+        emitterAnana.createEmitter({
+            frame: 4,
+            angle: { min: 180, max: 270 },
+            speed: { min: 400, max: 600 },
+            quantity: 1,
+            lifespan: 4000,
+            scale: this.scaleFruit,
+            gravityY: 800,
+            on: false,
+        });
+
+        emitterAnana.createEmitter({
+            frame: 5,
+            angle: { min: 270, max: 360 },
+            speed: { min: 400, max: 600 },
+            quantity: 1,
+            lifespan: 4000,
+            scale: this.scaleFruit,
+            gravityY: 800,
+            on: false,
+        });
+
+        emitterStrawberry = this.add.particles('divide-fruits');
+        emitterStrawberry.createEmitter({
+            frame: 6,
+            angle: { min: 180, max: 270 },
+            speed: { min: 400, max: 600 },
+            quantity: 1,
+            lifespan: 4000,
+            scale: this.scaleFruit,
+            gravityY: 800,
+            on: false,
+        });
+
+        emitterStrawberry.createEmitter({
+            frame: 7,
+            angle: { min: 270, max: 360 },
+            speed: { min: 400, max: 600 },
+            quantity: 1,
+            lifespan: 4000,
+            scale: this.scaleFruit,
+            gravityY: 800,
+            on: false,
+        });
+
+        // Update pointer value
+        this.input.on('pointermove', function (pointer) {
+            x = pointer.x;
+            y = pointer.y;
+            emitterLine.start();
+            emitterLine.setPosition(x, y);
+        });
+
+        this.input.on('pointerup', function () {
+            emitterLine.stop();
+        });
     }
 
-    // createGroup(numItems, sprite) {
-    //     var group = game.add.group();
-    //     group.enableBody = true;
-    //     group.physicsBodyType = Phaser.Physics.ARCADE;
-    //     group.createMultiple(numItems, sprite);
-    //     group.setAll('checkWorldBounds', true);
-    //     group.setAll('outOfBoundsKill', true);
-    //     return group;
-    // }
+    /**
+     * Chrono manager
+     */
+    generalCounter() {
+        chrono++;
+        if (choice == 'dojo') {
+            timeDojoText.text = 'Time : ' + (dojoTime - chrono);
+        }
+    }
+
+    /**Reset players values */
+    resetValues() {
+        // number of fruits
+        numberOfFruit = 1;
+        // number of bombs
+        numberOfBomb = 1;
+        // delay
+        delay = 5000;
+        // delay bomb reset
+        delayBomb = 10000;
+        // If is bomb
+        isBomb = false;
+        // Life losts
+        lifesLosts = 0;
+        // Instantiate score and display
+        score = 0;
+        // Instantiate chrono and display
+        chrono = 0;
+    }
 
     createFruit() {
-        var randSpeedX = Phaser.Math.Between(-100, 100);
-        var randSpeedY = Phaser.Math.Between(300, 400);
-        var c = fruits.create(
-            Phaser.Math.Between(0 + 100, this.game.config.width - 100),
-            this.game.config.height + this.game.config.height * 0.1,
-            'fruits'
-        );
-        c.setScale(this.scaleFruit).setScrollFactor(0);
-        c.setFrame(Phaser.Math.Between(0, 3));
-        c.setVelocity(randSpeedX, -randSpeedY);
-        c.allowGravity = true;
-        c.setGravityY(100);
-        c.setInteractive();
-        c.body.immovable = true;
+        for (let i = 0; i < numberOfFruit; i++) {
+            var randSpeedX = Phaser.Math.Between(0, 100) * speed;
+            var randSpeedY = Phaser.Math.Between(500, 600) * speed;
+            var randowXpos = Phaser.Math.Between(0 + 100, this.game.config.width - 100);
+            var c = fruits.create(randowXpos, this.game.config.height + this.game.config.height * 0.1, 'fruits');
+            c.setScale(this.scaleFruit).setScrollFactor(0);
+            c.setFrame(Phaser.Math.Between(0, 3));
+            c.setVelocity(c.body.x > this.game.config.width / 2 ? -randSpeedX : randSpeedX, -randSpeedY);
+            c.allowGravity = true;
+            c.setGravityY(300);
+            c.setInteractive();
+            c.body.immovable = true;
+        }
     }
 
-    // throwObject() {
-    //     if (game.time.now > nextFire && good_objects.countDead() > 0 && bad_objects.countDead() > 0) {
-    //         nextFire = game.time.now + fireRate;
-    //         throwGoodObject();
-    //         if (Math.random() > 0.5) {
-    //             throwBadObject();
-    //         }
-    //     }
-    // }
+    createBomb() {
+        for (let i = 0; i < numberOfBomb; i++) {
+            var randSpeedX = Phaser.Math.Between(0, 100) * speed;
+            var randSpeedY = Phaser.Math.Between(500, 600) * speed;
+            var randowXpos = Phaser.Math.Between(0 + 100, this.game.config.width - 100);
+            var c = bombs.create(randowXpos, this.game.config.height + this.game.config.height * 0.1, 'bomb');
+            c.setScale(this.scaleFruit).setScrollFactor(0);
+            c.setVelocity(c.body.x > this.game.config.width / 2 ? -randSpeedX : randSpeedX, -randSpeedY);
+            c.allowGravity = true;
+            c.setGravityY(300);
+            c.setInteractive();
+            c.body.immovable = true;
+        }
+    }
 
-    // throwGoodObject() {
-    //     var obj = good_objects.getFirstDead();
-    //     obj.reset(game.world.centerX + Math.random() * 100 - Math.random() * 100, 600);
-    //     obj.anchor.setTo(0.5, 0.5);
-    //     //obj.body.angularAcceleration = 100;
-    //     game.physics.arcade.moveToXY(obj, game.world.centerX, game.world.centerY, 530);
-    // }
-
-    // throwBadObject() {
-    //     var obj = bad_objects.getFirstDead();
-    //     obj.reset(game.world.centerX + Math.random() * 100 - Math.random() * 100, 600);
-    //     obj.anchor.setTo(0.5, 0.5);
-    //     //obj.body.angularAcceleration = 100;
-    //     game.physics.arcade.moveToXY(obj, game.world.centerX, game.world.centerY, 530);
-    // }
     /**
      * Handle collision with a fruit to update the score
-     * @param {*} bonhomme  the bonhomme object
      * @param {*} fruit The fruit object
      */
     checkIntersects(fruit, callback) {
         var l1 = new Phaser.Geom.Line(
-            fruit.body.right - fruit.width,
-            fruit.body.bottom - fruit.height,
+            fruit.body.right - fruit.body.width,
+            fruit.body.bottom - fruit.body.height,
             fruit.body.right,
             fruit.body.bottom
         );
-
         var l2 = new Phaser.Geom.Line(
-            fruit.body.right - fruit.width,
+            fruit.body.right - fruit.body.width,
             fruit.body.bottom,
             fruit.body.right,
-            fruit.body.bottom - fruit.height
+            fruit.body.bottom - fruit.body.height
         );
         l2.angle = 90;
-        console.log('line1 :', l1);
-        console.log('line mouve', line);
 
         if (Phaser.Geom.Intersects.LineToLine(line, l1, true) || Phaser.Geom.Intersects.LineToLine(line, l2, true)) {
-            console.log('intersect');
-            // contactPoint.x = this.x;
-            // contactPoint.y = this.y;
-            // var distance = Phaser.Point.distance(contactPoint, new Phaser.Point(fruit.x, fruit.y));
-            // if (Phaser.Point.distance(contactPoint, new Phaser.Point(fruit.x, fruit.y)) > 110) {
-            //     return;
-            // }
-            console.log(fruit);
             if (fruit.texture.key == 'fruits') {
-                emitter.emitParticleAt(fruit.x, fruit.y);
-                // emitter.gravity = 300;
-                // emitter.x = fruit.x;
-                // emitter.y = fruit.y;
-                // emitter.start(true, 2000, null, 4);
-                fruit.destroy();
+                switch (fruit.frame.name) {
+                    case 0:
+                        emitterBanana.emitParticleAt(fruit.x, fruit.y);
+                        break;
+                    case 1:
+                        emitterCherry.emitParticleAt(fruit.x, fruit.y);
+                        break;
+                    case 2:
+                        emitterAnana.emitParticleAt(fruit.x, fruit.y);
+                        break;
+                    case 3:
+                        emitterStrawberry.emitParticleAt(fruit.x, fruit.y);
+                        break;
+                }
+
+                slashSound.play();
                 points = [];
                 score++;
-                // scoreLabel.text = 'Score: ' + score;
+                scoreText.text = 'Score : ' + score;
+                if (score % 5 == 0 && choice == 'normal') {
+                    delay = delay - 100;
+                    numberOfFruit = numberOfFruit + 1;
+                }
+                if (choice == 'dojo') {
+                    if (score % 5 == 0) {
+                        numberOfFruit = numberOfFruit + 1;
+                    }
+
+                    if (score % 15 == 0) {
+                        numberOfBomb = numberOfBomb + 1;
+                    }
+                }
             } else {
-                // resetScore();
-                console.log('bomb');
+                isBomb = true;
             }
+            fruit.destroy();
         }
     }
 
     update() {
-        this.input.on('pointermove', function (pointer) {
-            x = pointer.x;
-            y = pointer.y;
-            // this.y = this.game.input.mousePointer.y;
-            // slashes.endFill();
-        });
-
+        // Push new points in points table
         points.push({
             x: x,
             y: y,
         });
-        // console.log(this.game.input.mousePointer.x, this.game.input.mousePointer.y);
+
+        // remove last points
         points = points.splice(points.length - 10, points.length);
-        //game.add.sprite(game.input.x, game.input.y, 'hit');
-
-        if (points.length < 1 || points[0].x == 0) {
-            return;
-        }
-        slashes.clear();
-        slashes.fillRect(0xffffff);
-        slashes.alpha = 0.5;
-        slashes.moveTo(points[0].x, points[0].y);
-        for (var i = 1; i < points.length; i++) {
-            slashes.lineTo(points[i].x, points[i].y);
-        }
 
         for (var i = 1; i < points.length; i++) {
-            console.log(points);
             line = new Phaser.Geom.Line(points[i].x, points[i].y, points[i - 1].x, points[i - 1].y);
             fruits.getChildren().forEach(this.checkIntersects);
-            // fruits.forEachExists(this.checkIntersects, null);
             bombs.getChildren().forEach(this.checkIntersects);
         }
 
-        //     // if (fruit.body.y > gameHeight + 300) {
-        //     //     fruit.destroy();
-        //     // }
-        // });
-        // this.physics.world.collide(this.pointer, fruits, this.collisionHandlerFruit, null, this);
-        // throwObject();
-        // points.push({
-        //     x: game.input.x,
-        //     y: game.input.y,
-        // });
-        // points = points.splice(points.length - 10, points.length);
-        // //game.add.sprite(game.input.x, game.input.y, 'hit');
-        // if (points.length < 1 || points[0].x == 0) {
-        //     return;
-        // }
-        // slashes.clear();
-        // slashes.beginFill(0xffffff);
-        // slashes.alpha = 0.5;
-        // slashes.moveTo(points[0].x, points[0].y);
-        // for (var i = 1; i < points.length; i++) {
-        //     slashes.lineTo(points[i].x, points[i].y);
-        // }
-        // slashes.endFill();
-        // for (var i = 1; i < points.length; i++) {
-        //     line = new Phaser.Line(points[i].x, points[i].y, points[i - 1].x, points[i - 1].y);
-        //     game.debug.geom(line);
-        //     good_objects.forEachExists(checkIntersects);
-        //     bad_objects.forEachExists(checkIntersects);
-        // }
+        fruits.getChildren().forEach(function (fruit) {
+            if (fruit.body.y > this.game.config.height + this.game.config.height * 0.1) {
+                if (choice == 'normal') {
+                    lifesLosts++;
+                    lifeText.text = 'Vies : ' + (lifes - lifesLosts);
+                }
+                fruit.destroy();
+            }
+        }, this);
+
+        bombs.getChildren().forEach(function (bomb) {
+            if (bomb.body.y > this.game.config.height + this.game.config.height * 0.1) {
+                bomb.destroy();
+            }
+            if (bomb.body) {
+                emitterBomb = particleLine.createEmitter({
+                    speed: { min: 100, max: 200 },
+                    angle: { min: -85, max: -95 },
+                    scale: { start: 0, end: 1, ease: 'Back.easeOut' },
+                    alpha: { start: 1, end: 0, ease: 'Quart.easeOut' },
+                    blendMode: 'SCREEN',
+                    lifespan: 500,
+                    follow: bomb,
+                });
+            }
+        }, this);
+
+        // Check if is game over
+        this.gameOver();
     }
 
-    // checkIntersects(fruit, callback) {
-    //     var l1 = new Phaser.Line(
-    //         fruit.body.right - fruit.width,
-    //         fruit.body.bottom - fruit.height,
-    //         fruit.body.right,
-    //         fruit.body.bottom
-    //     );
-    //     var l2 = new Phaser.Line(
-    //         fruit.body.right - fruit.width,
-    //         fruit.body.bottom,
-    //         fruit.body.right,
-    //         fruit.body.bottom - fruit.height
-    //     );
-    //     l2.angle = 90;
+    /**
+     * Go to end scene and reset game value if condition are required
+     */
+    gameOver() {
+        if ((choice == 'normal' && lifes <= lifesLosts) || isBomb || (choice == 'dojo' && chrono == 30)) {
+            endSound.play();
+            this.goToEndScene();
+            this.resetValues();
+        }
+    }
 
-    //     if (Phaser.Line.intersects(line, l1, true) || Phaser.Line.intersects(line, l2, true)) {
-    //         contactPoint.x = game.input.x;
-    //         contactPoint.y = game.input.y;
-    //         var distance = Phaser.Point.distance(contactPoint, new Phaser.Point(fruit.x, fruit.y));
-    //         if (Phaser.Point.distance(contactPoint, new Phaser.Point(fruit.x, fruit.y)) > 110) {
-    //             return;
-    //         }
-
-    //         if (fruit.parent == good_objects) {
-    //             killFruit(fruit);
-    //         } else {
-    //             resetScore();
-    //         }
-    //     }
-    // }
-
-    // resetScore() {
-    //     var highscore = Math.max(score, localStorage.getItem('highscore'));
-    //     localStorage.setItem('highscore', highscore);
-
-    //     good_objects.forEachExists(killFruit);
-    //     bad_objects.forEachExists(killFruit);
-
-    //     score = 0;
-    //     scoreLabel.text = 'Game Over!\nHigh Score: ' + highscore;
-    //     // Retrieve
-    // }
-
-    // render() {}
-
-    // killFruit(fruit) {
-    //     emitter.x = fruit.x;
-    //     emitter.y = fruit.y;
-    //     emitter.start(true, 2000, null, 4);
-    //     fruit.kill();
-    //     points = [];
-    //     score++;
-    //     scoreLabel.text = 'Score: ' + score;
-    // }
+    /**
+     * Go back to endScene
+     */
+    goToEndScene() {
+        this.scene.start('EndScene', { score: score, time: chrono });
+    }
 }
