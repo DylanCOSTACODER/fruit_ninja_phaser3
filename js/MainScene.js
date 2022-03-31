@@ -28,6 +28,7 @@ let emitterBanana = null,
     emitterStrawberry = null,
     emitterLine = null,
     emitterBomb = null,
+    emitterApple = null,
     particleLine = null,
     choice = null;
 let x, y;
@@ -43,15 +44,41 @@ export default class MainScene extends Phaser.Scene {
     }
 
     preload() {
-        this.load.spritesheet('fruits', 'assets/fruits-sprite.png', {
-            frameWidth: 512,
-            frameHeight: 512,
+        // this.load.spritesheet('fruits', 'assets/fruits-sprite.png', {
+        //     frameWidth: 512,
+        //     frameHeight: 512,
+        // });
+
+        this.load.spritesheet('banana', 'assets/Banana_Spritesheet.png', {
+            frameWidth: 715,
+            frameHeight: 292,
         });
 
-        this.load.spritesheet('divide-fruits', 'assets/fruits-sprite.png', {
-            frameWidth: 256,
-            frameHeight: 512,
+        this.load.spritesheet('cherry', 'assets/Cherry_Spritesheet.png', {
+            frameWidth: 327,
+            frameHeight: 292,
         });
+
+        this.load.spritesheet('pineapple', 'assets/Pineapple_Spritesheet2.png', {
+            frameWidth: 150,
+            frameHeight: 294,
+        });
+
+        this.load.spritesheet('apple', 'assets/Apple_SpriteSheet.png', {
+            frameWidth: 359,
+            frameHeight: 292,
+        });
+
+        this.load.spritesheet('strawberry', 'assets/Strawberry_Spritesheet.png', {
+            frameWidth: 254,
+            frameHeight: 292,
+        });
+
+        // this.load.spritesheet('divide-fruits', 'assets/fruits-sprite.png', {
+        //     frameWidth: 256,
+        //     frameHeight: 512,
+        // });
+
         this.load.image('bomb', 'assets/bomb.png');
         this.load.image('line', 'assets/line.png');
         this.load.audio('slash', ['assets/slash.wav']);
@@ -76,8 +103,30 @@ export default class MainScene extends Phaser.Scene {
 
         this.scaleFruit =
             this.game.config.width > this.game.config.height
-                ? this.game.config.width * 0.0001
-                : this.game.config.width * 0.0002;
+                ? this.game.config.width * 0.0002
+                : this.game.config.width * 0.0004;
+
+        this.scaleAnana =
+            this.game.config.width > this.game.config.height
+                ? this.game.config.width * 0.0003
+                : this.game.config.width * 0.0006;
+
+        this.scaleApple =
+            this.game.config.width > this.game.config.height
+                ? this.game.config.width * 0.0002
+                : this.game.config.width * 0.0004;
+        this.scaleBanana =
+            this.game.config.width > this.game.config.height
+                ? this.game.config.width * 0.00012
+                : this.game.config.width * 0.00024;
+        this.scaleCherry =
+            this.game.config.width > this.game.config.height
+                ? this.game.config.width * 0.0002
+                : this.game.config.width * 0.0004;
+        this.scaleStrawberry =
+            this.game.config.width > this.game.config.height
+                ? this.game.config.width * 0.0002
+                : this.game.config.width * 0.0004;
 
         this.fruitScore = this.add.sprite(this.game.config.width * 0.05, this.game.config.height * 0.05, 'fruits');
         this.fruitScore.setFrame(0);
@@ -154,94 +203,117 @@ export default class MainScene extends Phaser.Scene {
         emitterLine.reserve(1000);
         // emitterLine.stop();
 
-        emitterBanana = this.add.particles('divide-fruits');
-        emitterBanana.createEmitter({
-            frame: 0,
-            angle: { min: 180, max: 270 },
-            speed: { min: 400, max: 600 },
-            quantity: 1,
-            lifespan: 4000,
-            scale: this.scaleFruit,
-            gravityY: 800,
-            on: false,
-        });
-
+        emitterBanana = this.add.particles('banana');
         emitterBanana.createEmitter({
             frame: 1,
-            angle: { min: 270, max: 360 },
+            angle: { min: 180, max: 270 },
             speed: { min: 400, max: 600 },
             quantity: 1,
             lifespan: 4000,
-            scale: this.scaleFruit,
+            scale: this.scaleBanana,
             gravityY: 800,
             on: false,
         });
 
-        emitterCherry = this.add.particles('divide-fruits');
+        emitterBanana.createEmitter({
+            frame: 2,
+            angle: { min: 270, max: 360 },
+            speed: { min: 400, max: 600 },
+            quantity: 1,
+            lifespan: 4000,
+            scale: this.scaleBanana,
+            gravityY: 800,
+            on: false,
+        });
+
+        emitterCherry = this.add.particles('cherry');
+        emitterCherry.createEmitter({
+            frame: 1,
+            angle: { min: 180, max: 270 },
+            speed: { min: 400, max: 600 },
+            quantity: 1,
+            lifespan: 4000,
+            scale: this.scaleCherry,
+            gravityY: 800,
+            on: false,
+        });
+
         emitterCherry.createEmitter({
             frame: 2,
-            angle: { min: 180, max: 270 },
-            speed: { min: 400, max: 600 },
-            quantity: 1,
-            lifespan: 4000,
-            scale: this.scaleFruit,
-            gravityY: 800,
-            on: false,
-        });
-
-        emitterCherry.createEmitter({
-            frame: 3,
             angle: { min: 270, max: 360 },
             speed: { min: 400, max: 600 },
             quantity: 1,
             lifespan: 4000,
-            scale: this.scaleFruit,
+            scale: this.scaleCherry,
             gravityY: 800,
             on: false,
         });
 
-        emitterAnana = this.add.particles('divide-fruits');
+        emitterAnana = this.add.particles('pineapple');
         emitterAnana.createEmitter({
-            frame: 4,
+            frame: 1,
             angle: { min: 180, max: 270 },
             speed: { min: 400, max: 600 },
             quantity: 1,
             lifespan: 4000,
-            scale: this.scaleFruit,
+            scale: this.scaleAnana,
             gravityY: 800,
             on: false,
         });
 
         emitterAnana.createEmitter({
-            frame: 5,
+            frame: 2,
             angle: { min: 270, max: 360 },
             speed: { min: 400, max: 600 },
             quantity: 1,
             lifespan: 4000,
-            scale: this.scaleFruit,
+            scale: this.scaleAnana,
             gravityY: 800,
             on: false,
         });
 
-        emitterStrawberry = this.add.particles('divide-fruits');
+        emitterStrawberry = this.add.particles('strawberry');
         emitterStrawberry.createEmitter({
-            frame: 6,
+            frame: 1,
             angle: { min: 180, max: 270 },
             speed: { min: 400, max: 600 },
             quantity: 1,
             lifespan: 4000,
-            scale: this.scaleFruit,
+            scale: this.scaleStrawberry,
             gravityY: 800,
             on: false,
         });
 
         emitterStrawberry.createEmitter({
-            frame: 7,
+            frame: 2,
             angle: { min: 270, max: 360 },
             speed: { min: 400, max: 600 },
             quantity: 1,
             lifespan: 4000,
-            scale: this.scaleFruit,
+            scale: this.scaleStrawberry,
+            gravityY: 800,
+            on: false,
+        });
+
+        emitterApple = this.add.particles('apple');
+        emitterApple.createEmitter({
+            frame: 1,
+            angle: { min: 180, max: 270 },
+            speed: { min: 400, max: 600 },
+            quantity: 1,
+            lifespan: 4000,
+            scale: this.scaleApple,
+            gravityY: 800,
+            on: false,
+        });
+
+        emitterApple.createEmitter({
+            frame: 2,
+            angle: { min: 270, max: 360 },
+            speed: { min: 400, max: 600 },
+            quantity: 1,
+            lifespan: 4000,
+            scale: this.scaleApple,
             gravityY: 800,
             on: false,
         });
@@ -290,13 +362,38 @@ export default class MainScene extends Phaser.Scene {
     }
 
     createFruit() {
+        const keySelection = ['cherry', 'pineapple', 'strawberry', 'apple', 'banana'];
+
         for (let i = 0; i < numberOfFruit; i++) {
+            let scale;
             var randSpeedX = Phaser.Math.Between(0, 100) * speed;
             var randSpeedY = Phaser.Math.Between(500, 600) * speed;
             var randowXpos = Phaser.Math.Between(0 + 100, this.game.config.width - 100);
-            var c = fruits.create(randowXpos, this.game.config.height + this.game.config.height * 0.1, 'fruits');
-            c.setScale(this.scaleFruit).setScrollFactor(0);
-            c.setFrame(Phaser.Math.Between(0, 3));
+            var c = fruits.create(
+                randowXpos,
+                this.game.config.height + this.game.config.height * 0.1,
+                keySelection[Phaser.Math.Between(0, 4)]
+            );
+            console.log(c.texture.key);
+            switch (c.texture.key) {
+                case 'banana':
+                    scale = this.scaleBanana;
+                    break;
+                case 'cherry':
+                    scale = this.scaleCherry;
+                    break;
+                case 'pineapple':
+                    scale = this.scaleAnana;
+                    break;
+                case 'strawberry':
+                    scale = this.scaleStrawberry;
+                    break;
+                case 'apple':
+                    scale = this.scaleApple;
+                    break;
+            }
+            c.setScale(scale).setScrollFactor(0);
+            c.setFrame(0);
             c.setVelocity(c.body.x > this.game.config.width / 2 ? -randSpeedX : randSpeedX, -randSpeedY);
             c.allowGravity = true;
             c.setGravityY(300);
@@ -340,19 +437,28 @@ export default class MainScene extends Phaser.Scene {
         l2.angle = 90;
 
         if (Phaser.Geom.Intersects.LineToLine(line, l1, true) || Phaser.Geom.Intersects.LineToLine(line, l2, true)) {
-            if (fruit.texture.key == 'fruits') {
-                switch (fruit.frame.name) {
-                    case 0:
+            if (
+                (fruit.texture.key == 'cherry') |
+                (fruit.texture.key == 'pineapple') |
+                (fruit.texture.key == 'strawberry') |
+                (fruit.texture.key == 'apple') |
+                (fruit.texture.key == 'banana')
+            ) {
+                switch (fruit.texture.key) {
+                    case 'banana':
                         emitterBanana.emitParticleAt(fruit.x, fruit.y);
                         break;
-                    case 1:
+                    case 'cherry':
                         emitterCherry.emitParticleAt(fruit.x, fruit.y);
                         break;
-                    case 2:
+                    case 'pineapple':
                         emitterAnana.emitParticleAt(fruit.x, fruit.y);
                         break;
-                    case 3:
+                    case 'strawberry':
                         emitterStrawberry.emitParticleAt(fruit.x, fruit.y);
+                        break;
+                    case 'apple':
+                        emitterApple.emitParticleAt(fruit.x, fruit.y);
                         break;
                 }
 
