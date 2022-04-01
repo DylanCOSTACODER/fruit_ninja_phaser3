@@ -64,7 +64,7 @@ export default class MainScene extends Phaser.Scene {
             frameHeight: 294,
         });
 
-        this.load.spritesheet('apple', 'assets/Apple_SpriteSheet.png', {
+        this.load.spritesheet('apple', 'assets/Apple_Spritesheet.png', {
             frameWidth: 359,
             frameHeight: 292,
         });
